@@ -1,5 +1,5 @@
-12-28 17:46:39 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 392:Plugin executed on: 'win32'
-12-28 17:46:39 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 393:Plugin executed with python version: '3.11.5 (main, Jul 16 2024, 08:01:06) [MSC v.1939 64 bit (AMD64)]'
-12-28 17:46:39 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 394:KiCad build version: 8.0.4
-12-28 17:46:39 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 395:Plugin version: 3.0.3
-12-28 17:46:39 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 396:Frame repr: <wx._core.Frame object at 0x00000210CD455240>
+02-10 12:02:42 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 392:Plugin executed on: 'win32'
+02-10 12:02:42 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 393:Plugin executed with python version: '3.11.5 (main, Jul 16 2024, 08:01:06) [MSC v.1939 64 bit (AMD64)]'
+02-10 12:02:42 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 394:KiCad build version: 8.0.4
+02-10 12:02:42 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 395:Plugin version: 3.0.3
+02-10 12:02:42 com_github_MitjaNemec_ReplicateLayout.action_replicate_layout 396:Frame repr: <wx._core.Frame object at 0x0000015CC4B7FD00>
