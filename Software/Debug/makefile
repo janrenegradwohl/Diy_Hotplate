@@ -60,8 +60,8 @@ all: main-build
 main-build: STM32F301_HotPlate.elf secondary-outputs
 
 # Tool invocations
-STM32F301_HotPlate.elf STM32F301_HotPlate.map: $(OBJS) $(USER_OBJS) C:\Users\jangr\Desktop\KiCad\Hotplate\Software\STM32F301K6TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "STM32F301_HotPlate.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\jangr\Desktop\KiCad\Hotplate\Software\STM32F301K6TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32F301_HotPlate.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+STM32F301_HotPlate.elf STM32F301_HotPlate.map: $(OBJS) $(USER_OBJS) C:\Users\Jan\Desktop\Projects\Hotplate\Software\STM32F301K6TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "STM32F301_HotPlate.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Jan\Desktop\Projects\Hotplate\Software\STM32F301K6TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32F301_HotPlate.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
