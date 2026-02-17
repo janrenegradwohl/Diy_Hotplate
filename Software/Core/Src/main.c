@@ -44,13 +44,16 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
-I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
 SPI_HandleTypeDef hspi3;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
+
+UART_HandleTypeDef huart1;
+DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart1_tx;
 
 /* USER CODE BEGIN PV */
 
@@ -65,7 +68,7 @@ static void MX_SPI3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_I2C2_Init(void);
-static void MX_I2C1_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -77,6 +80,7 @@ static void MX_I2C1_Init(void);
 #define R_Seri_T       15000.0
 #define A_COEFF_T     0.0924917   // a in Ohm
 #define B_COEFF_T     4135.86     // b in Kelvin
+#define BUFFER_SIZE 64
 
 
 uint16_t PWM_Duty_T2C3 = 1;
@@ -91,6 +95,10 @@ const float t_kd = 0.0001;
 volatile float t_imem;
 volatile float t_previous_measurement = 0;
 char t_value;
+
+char UART_pData_TX[BUFFER_SIZE];
+char UART_pData_RX[BUFFER_SIZE];
+uint8_t DMA_BUFFER[BUFFER_SIZE];
 /* USER CODE END 0 */
 
 /**
@@ -145,7 +153,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   MX_I2C2_Init();
-  MX_I2C1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -161,13 +169,11 @@ int main(void)
   //TIM2->CCR3 = PWM_Duty_T2C3;
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 
-
   HAL_TIM_Base_Start(&htim1);
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC1_Reading, 2);
 
   temp_pid.setpoint = pispeed[2];
-
 
 
   //flushBuffer();
@@ -176,7 +182,7 @@ int main(void)
   while (1)
   {
 	  HAL_Delay(100);
-	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_12);
+	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 	  //temp_pid.measurement = ntc_get_temperature(ADC1_Reading[1]); //mesurement for C
 	  temp_pid.measurement = ADC1_Reading[0];
 
@@ -184,46 +190,10 @@ int main(void)
 	  m_tim1_set_value = temp_pid.output;
 	  TIM2->CCR3 = m_tim1_set_value * 1000/4096;
 
-
 	  t_value = ADC1_Reading[0];
-	  //flushBuffer();
 
+	  HAL_UART_Transmit_DMA(&huart1, DMA_BUFFER, sizeof(DMA_BUFFER));
 
-
-
-
-	  /*
-	  setbgColor(0, 0, 0);
-	      setColor(50, 50, 50);
-	      //drawLine(20, 7, 180, 7);
-
-	      //Horizontal Lines
-	      for (uint16_t i = 0; i <= 65; i += 13) {
-	        uint16_t y = i + 2;
-	        drawLine(22, y, 157, y);
-	      }
-
-	      //Vertical Lines
-	      for (uint16_t i = 0; i <= 173; i += 15) {
-	        uint16_t x = i + 22;
-	        drawLine(x, 2, x, 68);
-	      }
-
-	      setFont(ter_u12n);
-
-	      drawText(8, 49, "50");
-	      drawText(2, 36, "100");
-	      drawText(2, 23, "150");
-	      drawText(2, 10, "200");
-
-	      drawText(48, 70, "60");
-	      drawText(74, 70, "120");
-	      drawText(104, 70, "180");
-	      drawText(134, 70, "240");
-
-	      setColor(31, 63, 0);
-		*/
-	  HAL_Delay(50);
 
     /* USER CODE END WHILE */
 
@@ -269,9 +239,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_I2C2
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C2
                               |RCC_PERIPHCLK_TIM1|RCC_PERIPHCLK_ADC1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
   PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_HSI;
   PeriphClkInit.Tim1ClockSelection = RCC_TIM1CLK_HCLK;
   PeriphClkInit.Adc1ClockSelection = RCC_ADC1PLLCLK_DIV1;
@@ -345,54 +315,6 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
-
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00201D2B;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
 
 }
 
@@ -591,6 +513,41 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 38400;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -603,6 +560,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
@@ -623,26 +586,30 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, B1_Pin|B2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, B1_Pin|B2_Pin|D6_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PF1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(D5_GPIO_Port, D5_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : B1_Pin B2_Pin */
-  GPIO_InitStruct.Pin = B1_Pin|B2_Pin;
+  /*Configure GPIO pins : B1_Pin B2_Pin D6_Pin */
+  GPIO_InitStruct.Pin = B1_Pin|B2_Pin|D6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA6 B4_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|B4_Pin;
+  /*Configure GPIO pins : B3_Pin B4_Pin */
+  GPIO_InitStruct.Pin = B3_Pin|B4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : D5_Pin */
+  GPIO_InitStruct.Pin = D5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(D5_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   /* USER CODE END MX_GPIO_Init_2 */

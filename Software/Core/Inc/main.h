@@ -63,8 +63,14 @@ void Error_Handler(void);
 #define B1_GPIO_Port GPIOA
 #define B2_Pin GPIO_PIN_5
 #define B2_GPIO_Port GPIOA
+#define B3_Pin GPIO_PIN_6
+#define B3_GPIO_Port GPIOA
 #define B4_Pin GPIO_PIN_7
 #define B4_GPIO_Port GPIOA
+#define D6_Pin GPIO_PIN_15
+#define D6_GPIO_Port GPIOA
+#define D5_Pin GPIO_PIN_7
+#define D5_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
