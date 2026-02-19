@@ -157,16 +157,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-
-
-  //TIM2->CCR3 = PWM_Duty_T2C3;
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 
   HAL_TIM_Base_Start(&htim1);
@@ -174,10 +169,6 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC1_Reading, 2);
 
   temp_pid.setpoint = pispeed[2];
-
-
-  //flushBuffer();
-
 
   while (1)
   {
@@ -192,9 +183,11 @@ int main(void)
 
 	  t_value = ADC1_Reading[0];
 
-	  HAL_UART_Transmit_DMA(&huart1, DMA_BUFFER, sizeof(DMA_BUFFER));
+	  DMA_BUFFER[0] = ntc_get_temperature(t_value);
 
+	  HAL_UART_Transmit_DMA(&huart1, DMA_BUFFER, sizeof(DMA_BUFFER)); //use FT_Prog to diagnose FT231 related Problems
 
+	  HAL_Delay(5);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
