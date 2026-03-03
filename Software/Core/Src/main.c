@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include "pid.h"
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -98,7 +100,7 @@ char t_value;
 
 char UART_pData_TX[BUFFER_SIZE];
 char UART_pData_RX[BUFFER_SIZE];
-uint8_t DMA_BUFFER[BUFFER_SIZE];
+char DMA_BUFFER[BUFFER_SIZE];
 /* USER CODE END 0 */
 
 /**
@@ -168,10 +170,12 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC1_Reading, 2);
 
+
   temp_pid.setpoint = pispeed[2];
 
   while (1)
   {
+
 	  HAL_Delay(100);
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 	  //temp_pid.measurement = ntc_get_temperature(ADC1_Reading[1]); //mesurement for C
@@ -183,11 +187,15 @@ int main(void)
 
 	  t_value = ADC1_Reading[0];
 
-	  DMA_BUFFER[0] = ntc_get_temperature(t_value);
+	  //DMA_BUFFER[0] = ntc_get_temperature(t_value);
+	  //DMA_BUFFER[0] = "Hello World!\r\n";
+	  sprintf(DMA_BUFFER, "Hello World!\r\n%i", (int)t_value);
+	  HAL_Delay(10);
 
-	  HAL_UART_Transmit_DMA(&huart1, DMA_BUFFER, sizeof(DMA_BUFFER)); //use FT_Prog to diagnose FT231 related Problems
+	  HAL_UART_Transmit_DMA(&huart1, (uint8_t*)DMA_BUFFER, strlen(DMA_BUFFER)); //use FT_Prog to diagnose FT231 related Problems
+	  //HAL_UART_Transmit(&huart1, (uint8_t*)DMA_BUFFER, strlen(DMA_BUFFER), HAL_MAX_DELAY);
 
-	  HAL_Delay(5);
+	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -521,7 +529,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 38400;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
