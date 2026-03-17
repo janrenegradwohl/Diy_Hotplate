@@ -106,9 +106,9 @@ char UART_pData_TX[BUFFER_SIZE];
 char UART_pData_RX[BUFFER_SIZE];
 char DMA_BUFFER[BUFFER_SIZE];
 
-volatile uint32_t globalTime = 0;
-volatile uint32_t globalLastTime = 0;
-volatile uint32_t globalElapsedTime = 0;
+volatile uint16_t globalTime = 0;
+volatile uint16_t globalLastTime = 0;
+volatile uint16_t globalElapsedTime = 0;
 
 uint32_t tempAddLastTime = 0;
 uint32_t tempAddTimer = 10; 		//temperature add timer
@@ -215,9 +215,9 @@ int main(void)
 		HAL_UART_Transmit_DMA(&huart1, (uint8_t*) DMA_BUFFER,
 				strlen(DMA_BUFFER));
 
-		HAL_Delay(500);
-		globalElapsedTime = globalTime - globalLastTime;
+		HAL_Delay(1);
 		globalTime = __HAL_TIM_GET_COUNTER(&htim6);
+		globalElapsedTime = globalTime - globalLastTime;
 
 
 
@@ -558,7 +558,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 64 - 1;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 4000 - 1;
+  htim6.Init.Period = 65000 - 1;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
