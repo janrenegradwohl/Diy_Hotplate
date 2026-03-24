@@ -81,6 +81,7 @@ static void MX_TIM6_Init(void);
 /* USER CODE BEGIN 0 */
 
 #define ADC1_RES     4095.0    // Auflösung (12 Bit: 2^12 - 1)
+#define ADC1_RES2     4294967295    // Auflösung (32 Bit: 2^32 - 1)
 #define R_Seri_T       15000.0	//
 #define A_COEFF_T     0.0924917   // a in Ohm
 #define B_COEFF_T     4135.86     // b in Kelvin
@@ -126,8 +127,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	float ntc_get_temperature(uint32_t adc_value) {
-
-		float V = (adc_value / ADC1_RES) * 3.3;
+		float V = ((float)adc_value / ADC1_RES2) * 3.3;
 		float R_ntc = R_Seri_T * (V / (3.3 - V));
 
 		float lnR = log(R_ntc);
@@ -137,6 +137,7 @@ int main(void)
 		float T_C = T_K - 273.15;           // in °C umrechnen
 
 		return T_C;
+
 	}
   /* USER CODE END 1 */
 
@@ -207,10 +208,8 @@ int main(void)
 		m_tim1_set_value = temp_pid.output;
 		TIM2->CCR3 = m_tim1_set_value * 1000 / 4096;
 
-		t_value = (float)ADC1_Reading[0];
-
-		sprintf(DMA_BUFFER, "Temp [°C]: %i",
-				(int) ntc_get_temperature(t_value) * 100);
+		sprintf(DMA_BUFFER, "Temp: %i [°C]\n\r",
+				(int) ntc_get_temperature(ADC1_Reading[0]) * 100);
 
 		HAL_UART_Transmit_DMA(&huart1, (uint8_t*) DMA_BUFFER,
 				strlen(DMA_BUFFER));
