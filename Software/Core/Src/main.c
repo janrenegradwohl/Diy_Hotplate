@@ -53,6 +53,7 @@ SPI_HandleTypeDef hspi3;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim15;
 
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
@@ -73,6 +74,7 @@ static void MX_TIM1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_TIM15_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -81,26 +83,25 @@ static void MX_TIM6_Init(void);
 /* USER CODE BEGIN 0 */
 
 #define ADC1_RES     4095.0    // Auflösung (12 Bit: 2^12 - 1)
-#define ADC1_RES2     4294967295    // Auflösung (32 Bit: 2^32 - 1)
-#define R_Seri_T       15000.0	//
+#define R_Seri_T       6800.0	//
 #define A_COEFF_T     0.0924917   // a in Ohm
 #define B_COEFF_T     4135.86     // b in Kelvin
 #define BUFFER_SIZE 64
 
 uint16_t PWM_Duty_T2C3 = 1;
 
-int pispeed[5] = { 1, 10, 20, 100, 500 };
+//int pispeed[5] = { 1, 10, 20, 100, 500 };
 volatile uint32_t ADC1_Reading[2] = { 0, 0 };
-volatile uint32_t temp_data = 1;
+//volatile uint32_t temp_data = 1;
 volatile uint32_t m_tim1_set_value = 0;
-const float t_kp = 0.8;
-const float t_ki = 0.2;
-const float t_kd = 0.0001;
-volatile float t_imem;
+//const float t_kp = 0.8;
+//const float t_ki = 0.2;
+//const float t_kd = 0.0001;
+//volatile float t_imem;
 volatile float t_previous_measurement = 0;
-volatile float t_value;
+volatile uint32_t t_value;
 
-uint8_t HeatMode = 0b00000000;
+//uint8_t HeatMode = 0b00000000;
 float TempSetPoint = 0;
 
 char UART_pData_TX[BUFFER_SIZE];
@@ -111,10 +112,10 @@ volatile uint16_t globalTime = 0;
 volatile uint16_t globalLastTime = 0;
 volatile uint16_t globalElapsedTime = 0;
 
-uint32_t tempAddLastTime = 0;
-uint32_t tempAddTimer = 10; 		//temperature add timer
-uint16_t tempSetValue = 20;			//20°C
-uint16_t tempMaxValue = 150;	//defines max temperature value, init with 150°C
+//uint32_t tempAddLastTime = 0;
+//uint32_t tempAddTimer = 10; 		//temperature add timer
+//uint16_t tempSetValue = 20;			//20°C
+//uint16_t tempMaxValue = 150;	//defines max temperature value, init with 150°C
 
 /* USER CODE END 0 */
 
@@ -127,7 +128,8 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	float ntc_get_temperature(uint32_t adc_value) {
-		float V = ((float)adc_value / ADC1_RES2) * 3.3;
+
+		float V = (adc_value / ADC1_RES) * 3.3;
 		float R_ntc = R_Seri_T * (V / (3.3 - V));
 
 		float lnR = log(R_ntc);
@@ -136,8 +138,7 @@ int main(void)
 		float T_K = B_COEFF_T / (lnR - lnA);  // Temperatur in Kelvin
 		float T_C = T_K - 273.15;           // in °C umrechnen
 
-		return T_C;
-
+		return (uint32_t)T_C;
 	}
   /* USER CODE END 1 */
 
@@ -148,10 +149,10 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-	PID_f temp_pid;
+	//PID_f temp_pid;
 
-	pid_begin(&temp_pid, t_kp, t_ki, t_kd, 4095, 0, t_previous_measurement,
-			t_imem); // d wert aufpassen
+	//pid_begin(&temp_pid, t_kp, t_ki, t_kd, 4095, 0, t_previous_measurement,
+	//		t_imem); // d wert aufpassen
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -171,6 +172,7 @@ int main(void)
   MX_I2C2_Init();
   MX_USART1_UART_Init();
   MX_TIM6_Init();
+  MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -178,7 +180,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+	//HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 
 	HAL_TIM_Base_Start(&htim6); // runs on 1000Hz update rate
 
@@ -186,7 +188,7 @@ int main(void)
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ADC1_Reading, 2);
 
-	temp_pid.setpoint = pispeed[2];
+	//temp_pid.setpoint = pispeed[2];
 
 	TIM2->CCR3 = 1;
 
@@ -194,31 +196,22 @@ int main(void)
 		globalLastTime = __HAL_TIM_GET_COUNTER(&htim6);
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 
-		if ((globalTime >= tempAddLastTime + tempAddTimer)
-				&& (tempSetValue < tempMaxValue)) {
-			tempAddLastTime = globalTime;
-			tempSetValue++;
-			temp_pid.setpoint = tempSetValue;
 
-		}
+		t_value = ADC1_Reading[0];
+		uint32_t t_value2 = ADC1_Reading[1];
 
-		temp_pid.measurement = ADC1_Reading[0];
+		sprintf(DMA_BUFFER, "Reg: %i, Temp [°C]; %i, 2:Reg: %i, Temp [°C]; %i\n\r",
+				(int) t_value, (int) ntc_get_temperature(t_value), (int) t_value2, (int) ntc_get_temperature(t_value2) );
 
-		pid_parallel_t(&temp_pid, globalElapsedTime/1000.0F);
-		m_tim1_set_value = temp_pid.output;
-		TIM2->CCR3 = m_tim1_set_value * 1000 / 4096;
-
-		sprintf(DMA_BUFFER, "Temp: %i [°C]\n\r",
-				(int) ntc_get_temperature(ADC1_Reading[0]) * 100);
 
 		HAL_UART_Transmit_DMA(&huart1, (uint8_t*) DMA_BUFFER,
 				strlen(DMA_BUFFER));
 
+
 		HAL_Delay(1);
+
 		globalTime = __HAL_TIM_GET_COUNTER(&htim6);
 		globalElapsedTime = globalTime - globalLastTime;
-
-
 
     /* USER CODE END WHILE */
 
@@ -265,10 +258,12 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C2
-                              |RCC_PERIPHCLK_TIM1|RCC_PERIPHCLK_ADC1;
+                              |RCC_PERIPHCLK_TIM1|RCC_PERIPHCLK_TIM15
+                              |RCC_PERIPHCLK_ADC1;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
   PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_HSI;
   PeriphClkInit.Tim1ClockSelection = RCC_TIM1CLK_HCLK;
+  PeriphClkInit.Tim15ClockSelection = RCC_TIM15CLK_HCLK;
   PeriphClkInit.Adc1ClockSelection = RCC_ADC1PLLCLK_DIV1;
 
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
@@ -308,7 +303,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -572,6 +567,52 @@ static void MX_TIM6_Init(void)
   /* USER CODE BEGIN TIM6_Init 2 */
 
   /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief TIM15 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM15_Init(void)
+{
+
+  /* USER CODE BEGIN TIM15_Init 0 */
+
+  /* USER CODE END TIM15_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM15_Init 1 */
+
+  /* USER CODE END TIM15_Init 1 */
+  htim15.Instance = TIM15;
+  htim15.Init.Prescaler = 0;
+  htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim15.Init.Period = 65535;
+  htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim15.Init.RepetitionCounter = 0;
+  htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim15) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim15, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim15, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM15_Init 2 */
+
+  /* USER CODE END TIM15_Init 2 */
 
 }
 
