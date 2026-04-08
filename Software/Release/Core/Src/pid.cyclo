@@ -1,0 +1,7 @@
+../Core/Src/pid.c:3:6:pi_begin	1
+../Core/Src/pid.c:12:6:pid_begin	1
+../Core/Src/pid.c:23:7:pi_series	1
+../Core/Src/pid.c:33:7:pi_series_t	1
+../Core/Src/pid.c:43:7:pi_parallel_t	1
+../Core/Src/pid.c:55:7:pid_parallel	1
+../Core/Src/pid.c:72:7:pid_parallel_t	1
