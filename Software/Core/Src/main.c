@@ -69,7 +69,7 @@ float ntc_get_temperature(uint32_t adc_value);
 #define B_COEFF_T     4135.86     // b in Kelvin 4135.86
 #define BUFFER_SIZE 64
 
-uint16_t PWM_Duty_T2C3 = 1;
+uint32_t PWM_Duty_T2C3 = 1;
 
 int pispeed[5] = { 1, 10, 20, 100, 500 };
 volatile uint32_t ADC1_Reading[2] = { 0, 0 };
@@ -92,6 +92,7 @@ char DMA_BUFFER[BUFFER_SIZE];
 volatile uint16_t globalTime = 0;
 volatile uint16_t globalLastTime = 0;
 volatile uint16_t globalElapsedTime = 0;
+volatile uint16_t lastTime = 0;
 
 //uint32_t tempAddLastTime = 0;
 //uint32_t tempAddTimer = 10; 		//temperature add timer
@@ -119,9 +120,8 @@ int main(void)
   /* USER CODE BEGIN Init */
 
 
-	PI_f temp_pi;
-	pi_begin(&temp_pi, t_kp, t_ki, 4095, 0, t_previous_measurement,
-			t_imem); // d wert aufpassen
+	PID_f temp_pid;
+	pid_begin(&temp_pid, t_kp, t_ki, t_kd, 1, 255, 0, t_imem);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -155,9 +155,9 @@ int main(void)
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ADC1_Reading, 2);
 
-	temp_pi.setpoint = pispeed[2];
-
-	TIM2->CCR3 = 1;
+	//temp_pi.setpoint = pispeed[2];
+	temp_pid.setpoint = 100;
+	TIM2->CCR3 = PWM_Duty_T2C3;
 
 	while (1) {
 		globalLastTime = __HAL_TIM_GET_COUNTER(&htim6);
@@ -165,16 +165,15 @@ int main(void)
 
 		t_value = ADC1_Reading[1];
 
-		sprintf(DMA_BUFFER, "Reg: %i, Temp [°C]; %i ElapsedTime [us]; %i\n\r",
-				(int) t_value, (int) ntc_get_temperature(t_value),(int) globalElapsedTime);
+		sprintf(DMA_BUFFER, "Reg: %i, Temp [°C]; %i, ElapsedTime [us]; %i, PWM [DC]; %i\n\r",
+				(int) t_value, (int) ntc_get_temperature(t_value),(int) globalElapsedTime, (int) temp_pid.output);
 
-		pi_parallel_t(&temp_pi, globalElapsedTime/1000000.0f);
-		TIM2->CCR3 = temp_pi.output;
+		pid_parallel_t(&temp_pid, (float) globalElapsedTime); //globalElapsedTime/1000.0f
+		TIM2->CCR3 = (uint32_t) temp_pid.output;
+
 		HAL_UART_Transmit_DMA(&huart1, (uint8_t*) DMA_BUFFER,
 				strlen(DMA_BUFFER));
-
-
-		HAL_Delay(0);
+		HAL_Delay(1);
 
 		globalTime = __HAL_TIM_GET_COUNTER(&htim6);
 		globalElapsedTime = globalTime - globalLastTime;
