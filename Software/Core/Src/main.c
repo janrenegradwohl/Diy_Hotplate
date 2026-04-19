@@ -121,7 +121,7 @@ int main(void)
 
 
 	PID_f temp_pid;
-	pid_begin(&temp_pid, t_kp, t_ki, t_kd, 1, 255, 0, t_imem);
+	pid_begin(&temp_pid, t_kp, t_ki, t_kd, 255, 0, t_previous_measurement, t_imem);
   /* USER CODE END Init */
 
   /* Configure the system clock */
