@@ -5219,7 +5219,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "270"
+		(property "Value" "0"
 			(at 146.812 37.338 90)
 			(effects
 				(font

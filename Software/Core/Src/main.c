@@ -121,7 +121,7 @@ int main(void)
 
 
 	PID_f temp_pid;
-	pid_begin(&temp_pid, t_kp, t_ki, t_kd, 1, 255, 0, t_imem);
+	pid_begin(&temp_pid, t_kp, t_ki, t_kd, 255, 0, t_previous_measurement, t_imem);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -164,7 +164,7 @@ int main(void)
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 
 		t_value = ADC1_Reading[1];
-
+		temp_pid.measurement = ntc_get_temperature(t_value);
 		sprintf(DMA_BUFFER, "Reg: %i, Temp [°C]; %i, ElapsedTime [us]; %i, PWM [DC]; %i\n\r",
 				(int) t_value, (int) ntc_get_temperature(t_value),(int) globalElapsedTime, (int) temp_pid.output);
 
