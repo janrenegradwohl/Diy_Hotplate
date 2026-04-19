@@ -164,7 +164,7 @@ int main(void)
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 
 		t_value = ADC1_Reading[1];
-
+		temp_pid.measurement = ntc_get_temperature(t_value);
 		sprintf(DMA_BUFFER, "Reg: %i, Temp [°C]; %i, ElapsedTime [us]; %i, PWM [DC]; %i\n\r",
 				(int) t_value, (int) ntc_get_temperature(t_value),(int) globalElapsedTime, (int) temp_pid.output);
 
