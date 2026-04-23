@@ -75,8 +75,8 @@ int pispeed[5] = { 1, 10, 20, 100, 500 };
 volatile uint32_t ADC1_Reading[2] = { 0, 0 };
 volatile uint32_t temp_data = 1;
 volatile uint32_t m_tim1_set_value = 0;
-const float t_kp = 0.8;
-const float t_ki = 0.2;
+const float t_kp = 0.08;
+const float t_ki = 0.002;
 const float t_kd = 0.0001;
 volatile float t_imem;
 volatile float t_previous_measurement = 0;
@@ -147,11 +147,9 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-	//HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-
-	HAL_TIM_Base_Start(&htim6); // runs on 1000Hz update rate
-
 	HAL_TIM_Base_Start(&htim1);
+	HAL_TIM_Base_Start(&htim6); // runs on 1000Hz update rate
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ADC1_Reading, 2);
 
@@ -163,12 +161,12 @@ int main(void)
 		globalLastTime = __HAL_TIM_GET_COUNTER(&htim6);
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 
-		t_value = ADC1_Reading[1];
+		t_value = ADC1_Reading[0];
 		temp_pid.measurement = ntc_get_temperature(t_value);
 		sprintf(DMA_BUFFER, "Reg: %i, Temp [°C]; %i, ElapsedTime [us]; %i, PWM [DC]; %i\n\r",
 				(int) t_value, (int) ntc_get_temperature(t_value),(int) globalElapsedTime, (int) temp_pid.output);
 
-		pid_parallel_t(&temp_pid, (float) globalElapsedTime); //globalElapsedTime/1000.0f
+		pid_parallel_t(&temp_pid, (float) globalElapsedTime/1000.0f); //globalElapsedTime/1000.0f
 		TIM2->CCR3 = (uint32_t) temp_pid.output;
 
 		HAL_UART_Transmit_DMA(&huart1, (uint8_t*) DMA_BUFFER,
